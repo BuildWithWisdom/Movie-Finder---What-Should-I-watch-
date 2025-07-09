@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import Header from "./components/Header";
 import clsx from "clsx";
+import Movie from "./components/Movie";
 
 function App() {
   const [movies, setMovies] = useState([]);
@@ -9,20 +10,22 @@ function App() {
   const apiToken = import.meta.env.VITE_API_ACCESS_TOKEN;
   const apiKey = import.meta.env.VITE_API_ACCESS_KEY;
   const message = "We could not find the specific movie you were looking for!";
+  const [openModal, setOpenModal] = useState(false);
 
-  const [movie, setMovie] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [movie, setMovie] = useState({});
 
   async function handleChange(e) {
     e.preventDefault();
     await fetch(
-      `https://api.themoviedb.org/3/search/movie?query=${movie}&api_key=${apiKey}`,
+      `https://api.themoviedb.org/3/search/movie?query=${searchQuery}&api_key=${apiKey}`,
     )
       .then((response) => response.json())
       .then((data) => {
         if (data.results.length > 0) {
           setMovies(data.results);
           setCategory("");
-          setMovie("");
+          setSearchQuery("");
         } else {
           setMovies([]);
           setCategory("");
@@ -63,15 +66,19 @@ function App() {
     setCategory("upcoming");
     getMovies("upcoming");
   }
+  function handleMovieDetails(movieId) {
+   setMovie(movies.find((movie) => movie.id === movieId))
+   setOpenModal(true)
+  }
   useEffect(() => {
     handlePopular();
   }, []);
 
   return (
     <>
-      <Header movie={movie} setMovie={setMovie} handleChange={handleChange} />
-      <main className="bg-[#121212] shadow-lg px-4 py-4">
-        <div className="flex justify-start items-center gap-3 text-white pt-1 pb-2">
+      <Header title={searchQuery} setTitle={setSearchQuery} handleChange={handleChange} />
+      <main className="bg-[#121212] shadow-lg px-4 py-4 relative">
+        <div className={clsx("flex justify-start items-center gap-3 text-white pt-1 pb-2 transition-all duration-300", openModal ? "opacity-10 pointer-events-none" : "opacity-100 pointer-events-auto")}>
           <button
             onClick={handlePopular}
             type="button"
@@ -103,12 +110,14 @@ function App() {
             Upcoming
           </button>
         </div>
-        <div className="grid sm:grid-cols-2 md:grid-cols-4 xl:grid-cols-5 gap-y-6 gap-x-5 place-content-center py-4">
+        <div className={clsx("grid sm:grid-cols-2 md:grid-cols-4 xl:grid-cols-5 gap-y-6 gap-x-5 place-content-center py-4 transition-all duration-300", openModal ? "opacity-10 pointer-events-none" : "opacity-100 pointer-events-auto")}>
           {movies.map((movie) => {
             return (
-              <div
+              <button
+                onClick={() => handleMovieDetails(movie.id)}
+                type="button"
                 key={movie.id}
-                className="rounded-xl shadow-movie-card max-sm:max-w-[450px]"
+                className="rounded-xl shadow-movie-card max-sm:max-w-[450px] cursor-pointer"
               >
                 <img
                   src={imgUrl + movie.poster_path}
@@ -121,7 +130,7 @@ function App() {
                 <p className="font-inter text-[#9CA3AF] font-light text-xs">
                   {movie.release_date}
                 </p>
-              </div>
+              </button>
             );
           })}
         </div>
@@ -133,6 +142,8 @@ function App() {
             </p>
           </div>
         )}
+
+        <Movie movie={movie} setMovie={setMovie} imgUrl={imgUrl} openModal={openModal} setOpenModal={setOpenModal}/>
       </main>
     </>
   );
